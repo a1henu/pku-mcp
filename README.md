@@ -2,9 +2,22 @@
 
 面向北大学生的本地优先助手。首版提供本地 stdio MCP：`due_list`、`schedule_list`、`auth_status`。目前读取现有课程工作区的已审核待办和课表摘录，不直接登录或发起写操作。
 
-```sh
-PKU_WORKSPACE=/path/to/course-workspace uv run python server.py
-```
+## 一句话交给你的 Agent
+
+> 请从 GitHub 的 `a1henu/pku-mcp`（如果还不可见，请用我提供的本地 checkout）克隆或打开项目，读 README 和 AGENTS.md，按「安装与验收」安装并跑 smoke，再根据我的 MCP 客户端配置演示；如我需要接入本人账号，请按「北大账号与手机令牌」每次只教我一步，等我自行完成再继续，绝不要索取密码、口令、二维码或 Cookie，也不要提交作业。
+
+## 安装与验收
+
+1. 准备 Git 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)。Agent 应先检查 `git --version`、`uv --version`，缺工具时说明安装动作，不关闭证书校验。
+2. 进入克隆目录，运行 `uv sync --locked` 和 `uv run --locked python smoke.py`。看到 `PASS` 代表真实 stdio 客户端已完成握手并调用三个工具；不需要北大账号。
+3. 运行 `uv run --locked python smoke.py --demo .local/demo`，生成合成演示数据。若目录已有快照，换新目录，不覆盖。
+4. 按你的客户端说明添加本地 stdio 服务：命令填 **uv 的绝对路径**，参数为 `--directory`、**仓库绝对路径**、`run`、`--locked`、`python`、`server.py`，环境变量 `PKU_WORKSPACE` 填 **`.local/demo` 的绝对路径**。重载客户端，请 Agent 调用 `due_list`；应看到「示例作业」。在普通 shell 中也可运行 `PKU_WORKSPACE="$PWD/.local/demo" uv run --locked python server.py`；服务等候 stdio 消息属于正常现象。
+
+### 北大账号与手机令牌
+
+1. 先问本人是否已绑定；已绑定就不要重新绑定。未绑定时，由本人在浏览器打开[北大统一身份认证手机令牌说明](https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html)，按官方页面指引登录并用页面支持的手机 App 完成绑定。二维码、密钥、验证码只在本人设备上处理，不截图发给 Agent。
+2. 本人可另装 `pku3b`，用 `pku3b --help` 核对所安装版本。若未配置，在自己的交互终端运行 `pku3b init`，自行输入登录信息；不要让 Agent 代填或记录。先用 `pku3b coursetable --force` 验证真实读取；如有令牌提示，在终端手动输入，不将其作为命令行参数。遇到钥匙串/登录失败，请回到本人终端和官方入口排查，不绕过认证。
+3. **当前版本不会把 `pku3b` 的输出自动转成快照。** 已有兼容课程工作区的用户可以把 `PKU_WORKSPACE` 改为自己的工作区绝对路径。其他同学可先用演示数据；本机 CLI 登录成功不代表 MCP 已接入真实数据。实时课表、通用同步、作业提交和回放下载仍待实现。
 
 在 MCP 客户端配置相同命令和环境变量。课表是历史摘录，不按自然日期推断教学周；新的来源快照也不等于待办已经人工复核。
 
@@ -42,3 +55,7 @@ PKU_WORKSPACE=/path/to/course-workspace uv run python server.py
 4. 补门户服务目录：逐项记录账号角色、页面入口、允许的访问方式和读写边界，再按使用频率接入。
 
 首版验收：登录失败仍能显示上次结果并标明时间；能区分退课与在修、同名不同班；日期级截止不补钟点；能保留来源冲突和“本地完成／已提交／已评分”的区别。
+
+## 开发与提交
+
+从 `main` 建功能分支，改动用合成样例跑 `uv sync --locked`、`uv run --locked python smoke.py` 和 `git diff --check`。依赖有变化时提交 `uv.lock`。提交前检查 `git diff --cached`，只暂存代码、文档和非个人测试数据；不要提交 `.local/`、下载、真实快照或凭据。按功能拆分提交，PR 写清验证范围、未验证项和隐私影响。
