@@ -17,7 +17,7 @@
 
 1. 先问本人是否已绑定；已绑定就不要重新绑定。未绑定时，由本人在浏览器打开[北大统一身份认证手机令牌说明](https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html)，按官方页面指引登录并用页面支持的手机 App 完成绑定。二维码、密钥、验证码只在本人设备上处理，不截图发给 Agent。
 2. 不需要安装 `pku3b`。在本机图形桌面的终端运行 `uv run --locked --extra campus playwright install chromium`，再运行 `uv run --locked --extra campus python campus.py`。在弹出的教学网浏览器里自行登录，需要时输入 OTP；看到课程首页后回终端按 Enter。专用浏览器会话保存在本机 `.local/campus-browser/`，不要上传或分享。
-3. 看到「教学网读取通过」后，在 MCP 客户端调用 `course_list`，核对课程数量和时间戳；该工具无需 `PKU_WORKSPACE`。真实账号验收以这一步成功为准。待办和课表仍需已有兼容课程工作区或演示快照；课程列表成功不代表它们已实时接入。
+3. 看到 `refreshed` 后，用 `--extra campus` 启动 MCP，并调用 `course_list(refresh=true)`。有效会话可在后台复用，不弹窗、不等输入。若返回 `reauth_required`，旧快照仍可读，需在本机重新运行 `campus.py` 登录。该工具无需 `PKU_WORKSPACE`；待办和课表仍读兼容工作区或演示快照。
 
 在 MCP 客户端配置相同命令和环境变量。课表是历史摘录，不按自然日期推断教学周；新的来源快照也不等于待办已经人工复核。
 

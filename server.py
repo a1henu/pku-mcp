@@ -5,18 +5,24 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
-from campus import ROOT as CAMPUS_ROOT
+from campus import ROOT as CAMPUS_ROOT, sync
 
 mcp = FastMCP("pku-mcp")
 
 
 @mcp.tool(structured_output=True)
-def course_list() -> dict[str, Any]:
-    """Read the last successful official teaching website course sync."""
+def course_list(refresh: bool = False) -> dict[str, Any]:
+    """Read campus courses; optionally refresh silently using the local browser session."""
+    attempt = {}
+    if refresh:
+        try:
+            attempt = {"refresh_status": sync()["status"]}
+        except ImportError:
+            attempt = {"refresh_status": "browser_extra_missing"}
     path = CAMPUS_ROOT / "campus-courses.json"
     if not path.exists():
-        return {"mode": "snapshot", "status": "sync_required", "items": []}
-    return {"mode": "snapshot", "status": "available", **json.loads(path.read_text(encoding="utf-8"))}
+        return {"mode": "snapshot", "status": "sync_required", "items": [], **attempt}
+    return {"mode": "snapshot", "status": "available", **json.loads(path.read_text(encoding="utf-8")), **attempt}
 TASK_FIELDS = (
     "course", "course_id", "content_id", "title", "due_at", "due_date",
     "deadline_raw", "requirements", "local_progress", "submission_record_status",
