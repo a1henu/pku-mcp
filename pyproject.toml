@@ -3,6 +3,8 @@ name = "pku-mcp"
 version = "0.3.0"
 description = "让 AI Agent 读北大教学网、课表和成绩的本地 MCP 服务：自动登录、自动手机令牌、学期资料整理"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4>=4.12,<5",

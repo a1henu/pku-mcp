@@ -6,6 +6,7 @@
   <a href="https://github.com/a1henu/pku-mcp/actions/workflows/ci.yml"><img src="https://github.com/a1henu/pku-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/MCP-stdio-8A2BE2" alt="MCP stdio">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-555" alt="macOS | Windows | Linux">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2EA44F" alt="MIT License"></a>
 </p>
 
 **pku-mcp 让你的 AI 助手能直接上北大教学网和校内门户**：查作业和截止时间、看公告、下课件、看课表和成绩。开学时说一句话，它就能把整个学期的课程资料下载到你电脑里，按课程分好文件夹。
@@ -77,3 +78,7 @@ Windows 上请先退出 AI 应用再更新。
 - [功能与用法](docs/usage.md)：全部工具、预设流程、命令行
 - [安全与隐私](docs/security.md)
 - [参与开发](docs/development.md)
+
+## 许可证
+
+[MIT](LICENSE)：可以自由使用、修改和分发，保留版权声明即可。
