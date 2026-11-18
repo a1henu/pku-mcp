@@ -173,7 +173,8 @@ def test_setup_page_saves_account_and_otp(monkeypatch):
     base = server.url
     origin = base.rsplit("/", 1)[0]
     with httpx.Client() as http:
-        assert "pku-mcp 本机配置" in http.get(base).text
+        assert "pku-mcp · 本机配置" in http.get(base).text
+        assert http.get(base + "/code").json()["ok"] is False  # 还没绑定令牌
         assert http.get(origin + "/").status_code == 404
         assert http.get(base, headers={"Host": "evil.example"}).status_code == 404
         assert http.post(base + "/account", json={"username": "x", "password": "y"},
@@ -188,6 +189,8 @@ def test_setup_page_saves_account_and_otp(monkeypatch):
         image = "data:image/png;base64," + base64.b64encode(qr_png(f"otpauth://totp/PKU:t?secret={SEED}")).decode()
         reply = http.post(base + "/otp", json={"image": image}).json()
         assert reply["ok"] and re.fullmatch(r"\d{6}", reply["code"]) and auth.otp_status()["configured"]
+        code = http.get(base + "/code").json()
+        assert code["ok"] and re.fullmatch(r"\d{6}", code["code"]) and 0 <= code["remaining_seconds"] <= 30
         assert http.post(base + "/otp", json={"image": "data:image/png;base64,AAAA"}).json()["ok"] is False
         assert http.post(base + "/otp", json={"text": "not base32 !"}).json()["ok"] is False
     if os.name != "nt":
