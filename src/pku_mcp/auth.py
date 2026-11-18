@@ -1,16 +1,15 @@
 """北大统一身份认证（IAAA）：本机凭据、动态口令与会话复用。
 
-密码与 OTP 种子存系统钥匙串（无可用钥匙串时退回 0600 文件），Cookie 存 PKU_MCP_HOME/sessions。
-本模块的任何返回值和异常信息都不包含密码、种子或 Cookie。
+所有状态都在 PKU_MCP_HOME（默认 ~/.pku-mcp）：config.json 存学号等设置，secrets.json 存密码和
+OTP 种子（权限 0600），sessions/ 存各子站 Cookie。不依赖系统钥匙串或外部 OTP 程序。
+本模块的返回值和异常信息都不包含密码、种子或 Cookie。
 """
 import base64
 import hmac
 import json
 import os
 import random
-import shutil
 import struct
-import subprocess
 import threading
 import time
 from http.cookiejar import Cookie
@@ -19,16 +18,14 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 import httpx
 
-HOME = Path(os.environ.get("PKU_MCP_HOME") or Path(__file__).resolve().parent / ".local").expanduser()
+HOME = Path(os.environ.get("PKU_MCP_HOME") or Path.home() / ".pku-mcp").expanduser()
 STATE = HOME / "auth-state.json"
-SERVICE = "pku-mcp"
 IAAA = "https://iaaa.pku.edu.cn/iaaa"
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36")
 # IAAA 连续失败会锁定账号半小时（E21），失败后暂停自动登录。
 COOLDOWN = {"E21": 1800}
 DEFAULT_COOLDOWN = 300
-PKU_OTP = ["pku-otp", "code", "--json", "--min-valid", "10"]
 _login_lock = threading.Lock()
 
 
@@ -63,55 +60,39 @@ def save_config(**changes) -> None:
                                          if value is not None})
 
 
-# ---- 机密存储 -------------------------------------------------------------
+# ---- 机密存储（本机文件，权限 0600） ----------------------------------------
 
-def _keyring():
-    if os.environ.get("PKU_MCP_SECRET_STORE") == "file":
-        return None
-    import keyring
-    from keyring.backends import fail
-    return None if isinstance(keyring.get_keyring(), fail.Keyring) else keyring
-
-
-def secret_storage() -> str:
-    store = _keyring()
-    return f"system keyring ({store.get_keyring().name})" if store else f"file ({HOME / 'secrets.json'})"
+SECRETS = HOME / "secrets.json"
 
 
 def get_secret(name: str) -> str | None:
-    store = _keyring()
-    if store:
-        return store.get_password(SERVICE, name)
-    return read_json(HOME / "secrets.json", {}).get(name)
+    return read_json(SECRETS, {}).get(name)
 
 
-def set_secret(name: str, value: str) -> None:
-    store = _keyring()
-    if store:
-        store.set_password(SERVICE, name, value)
-    else:
-        write_private(HOME / "secrets.json", {**read_json(HOME / "secrets.json", {}), name: value})
-
-
-def delete_secret(name: str) -> None:
-    store = _keyring()
-    if store:
-        from keyring.errors import PasswordDeleteError
-        try:
-            store.delete_password(SERVICE, name)
-        except PasswordDeleteError:
-            pass
-    else:
-        secrets = read_json(HOME / "secrets.json", {})
+def set_secret(name: str, value: str | None) -> None:
+    secrets = read_json(SECRETS, {})
+    if value is None:
         secrets.pop(name, None)
-        write_private(HOME / "secrets.json", secrets)
+    else:
+        secrets[name] = value
+    write_private(SECRETS, secrets)
+
+
+def save_account(username: str, password: str) -> None:
+    username, password = username.strip(), password.strip()
+    if not username or not password:
+        raise ValueError("学号和密码都不能为空")
+    set_secret("password", password)
+    save_config(username=username)
+    clear_sessions()
+    _update_state(failure=None)
 
 
 def credentials() -> tuple[str, str]:
     username = config().get("username")
     password = get_secret("password") if username else None
     if not password:
-        raise AuthError("credentials_missing", "在终端运行 uv run python cli.py setup 保存学号和密码")
+        raise AuthError("credentials_missing", "还没有保存北大账号")
     return username, password
 
 
@@ -122,9 +103,17 @@ def _b32(secret: str) -> bytes:
 
 
 def parse_otp(text: str) -> dict:
-    """解析 otpauth://totp URI 或 Base32 密钥，返回可保存的参数。"""
+    """解析 otpauth://totp URI、Base32 密钥，或含 secret 字段的 JSON（其他令牌工具的导出格式）。"""
     text = text.strip()
-    if text.startswith("otpauth://"):
+    if text.startswith("{"):
+        try:
+            data = json.loads(text)
+            otp = {"secret": str(data["secret"]), "digits": int(data.get("digits", 6)),
+                   "period": int(data.get("period", 30)), "algorithm": str(data.get("algorithm", "SHA1")).upper(),
+                   "label": data.get("label"), "issuer": data.get("issuer")}
+        except (ValueError, KeyError, TypeError):
+            raise ValueError("JSON 里没有可用的 secret 字段") from None
+    elif text.startswith("otpauth://"):
         parts = urlsplit(text)
         query = parse_qs(parts.query)
         if parts.netloc != "totp" or len(query.get("secret", [])) != 1:
@@ -135,7 +124,7 @@ def parse_otp(text: str) -> dict:
                "label": unquote(parts.path.lstrip("/")), "issuer": query.get("issuer", [None])[0]}
     else:
         otp = {"secret": text, "digits": 6, "period": 30, "algorithm": "SHA1"}
-    otp["secret"] = otp["secret"].replace(" ", "").upper().rstrip("=")
+    otp["secret"] = otp["secret"].replace(" ", "").replace("-", "").upper().rstrip("=")
     if otp["algorithm"] not in {"SHA1", "SHA256", "SHA512"} or not 6 <= otp["digits"] <= 8 or otp["period"] <= 0:
         raise ValueError("不支持的 OTP 参数")
     try:
@@ -144,6 +133,21 @@ def parse_otp(text: str) -> dict:
     except ValueError:
         raise ValueError("密钥不是有效的 Base32") from None
     return {key: value for key, value in otp.items() if value is not None}
+
+
+def read_qr(image) -> str:
+    """从 PIL 图片里找出 otpauth:// 二维码。"""
+    import zxingcpp
+    for barcode in zxingcpp.read_barcodes(image):
+        if barcode.text.startswith("otpauth://"):
+            return barcode.text
+    raise ValueError("图片里没有识别到 otpauth:// 二维码。请只截取北大页面上的手机令牌绑定二维码")
+
+
+def save_otp(text: str) -> dict:
+    otp = parse_otp(text)
+    set_secret("otp", json.dumps(otp))
+    return otp
 
 
 def totp(otp: dict, at: float | None = None) -> str:
@@ -155,54 +159,26 @@ def totp(otp: dict, at: float | None = None) -> str:
     return str(value % 10 ** otp["digits"]).zfill(otp["digits"])
 
 
-def otp_command() -> list[str] | None:
-    if command := config().get("otp_command"):
-        return command
-    if "PKU_OTP_COMMAND" in os.environ:  # 设为空串可关闭自动探测
-        return os.environ["PKU_OTP_COMMAND"].split() or None
-    return PKU_OTP if shutil.which("pku-otp") else None
-
-
 def otp_status() -> dict:
     stored = get_secret("otp")
-    if stored:
-        otp = json.loads(stored)
-        return {"source": "builtin", "algorithm": otp["algorithm"], "digits": otp["digits"],
-                "period": otp["period"], "label": otp.get("label")}
-    command = otp_command()
-    return {"source": "command", "command": command[0]} if command else {"source": "none"}
+    if not stored:
+        return {"configured": False}
+    otp = json.loads(stored)
+    return {"configured": True, "algorithm": otp["algorithm"], "digits": otp["digits"],
+            "period": otp["period"], "label": otp.get("label")}
 
 
 def current_otp(min_valid: int = 10) -> dict:
     """返回当前动态口令；剩余有效期不足 min_valid 秒时等下一周期。"""
     stored = get_secret("otp")
-    if stored:
-        otp = json.loads(stored)
+    if not stored:
+        raise AuthError("otp_missing", "账号开启了手机令牌，但本机还没有绑定 OTP 密钥")
+    otp = json.loads(stored)
+    remaining = otp["period"] - time.time() % otp["period"]
+    if remaining < min_valid:
+        time.sleep(remaining + 0.2)
         remaining = otp["period"] - time.time() % otp["period"]
-        if remaining < min_valid:
-            time.sleep(remaining + 0.2)
-            remaining = otp["period"] - time.time() % otp["period"]
-        return {"code": totp(otp), "remaining_seconds": int(remaining), "period": otp["period"], "source": "builtin"}
-    command = otp_command()
-    if not command:
-        raise AuthError("otp_missing", "尚未配置 OTP：运行 uv run python cli.py otp bind")
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=90)
-    except (OSError, subprocess.TimeoutExpired) as e:
-        raise AuthError("otp_command_failed", type(e).__name__) from None
-    output = result.stdout.strip()
-    if result.returncode:
-        raise AuthError("otp_command_failed", f"{command[0]} 退出码 {result.returncode}")
-    try:
-        data = json.loads(output)
-        code, remaining = data["code"], data.get("remaining_seconds")
-        if isinstance(code, int):
-            code = str(code).zfill(data.get("digits", 6))
-    except (ValueError, TypeError, KeyError):
-        code, remaining = output, None
-    if not code.isdigit():
-        raise AuthError("otp_command_failed", f"{command[0]} 输出不是数字口令")
-    return {"code": code, "remaining_seconds": remaining, "period": 30, "source": "command"}
+    return {"code": totp(otp), "remaining_seconds": int(remaining), "period": otp["period"]}
 
 
 def _fresh_otp() -> str:
@@ -240,6 +216,12 @@ def _encrypt(pem: str, password: str) -> str:
     return base64.b64encode(key.encrypt(password.encode(), padding.PKCS1v15())).decode()
 
 
+def second_factor(http: httpx.Client, appid: str, username: str) -> str | None:
+    """IAAA 对该账号在该子站要求的二次验证：OTP、否（不需要）或其他。"""
+    return http.get(f"{IAAA}/isMobileAuthen.do", params={
+        "appId": appid, "userName": username, "_rand": f"{random.random():.20f}"}).json().get("authenMode")
+
+
 def iaaa_token(http: httpx.Client, appid: str, redirect: str, force: bool = False) -> str:
     """用保存的学号、密码和自动生成的 OTP 换取子站登录 token。"""
     username, password = credentials()
@@ -248,11 +230,10 @@ def iaaa_token(http: httpx.Client, appid: str, redirect: str, force: bool = Fals
         raise AuthError("login_cooldown", f"上次登录失败（{failure['code']} {failure['message'] or ''}），"
                                           f"{failure['cooldown_seconds']} 秒内不自动重试，避免触发 IAAA 锁定")
     with _login_lock:
-        mode = http.get(f"{IAAA}/isMobileAuthen.do", params={
-            "appId": appid, "userName": username, "_rand": f"{random.random():.20f}"}).json()
-        if mode.get("authenMode") not in {"OTP", "否", None}:
-            raise AuthError("unsupported_second_factor", f"IAAA 要求 {mode.get('authenMode')} 验证，需本人在网页完成")
-        need_otp = mode.get("authenMode") == "OTP"
+        mode = second_factor(http, appid, username)
+        if mode not in {"OTP", "否", None}:
+            raise AuthError("unsupported_second_factor", f"IAAA 要求 {mode} 验证，需本人在网页完成")
+        need_otp = mode == "OTP"
         pem = http.get(f"{IAAA}/getPublicKey.do").json()["key"]
         for attempt in range(2):
             otp = _fresh_otp() if need_otp else ""
@@ -307,5 +288,5 @@ def status() -> dict:
     """本机配置概况：只报告是否已保存，不读出密码、种子或 Cookie。"""
     username = config().get("username")
     return {"username": username, "password_stored": bool(username and get_secret("password")),
-            "secret_storage": secret_storage(), "otp": otp_status(),
+            "otp": otp_status(), "home": str(HOME),
             "saved_sessions": sorted(p.stem for p in (HOME / "sessions").glob("*.json")), **login_state()}

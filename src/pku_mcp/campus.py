@@ -17,9 +17,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlencode, urljoin, urlsplit
 from zoneinfo import ZoneInfo
 
+import httpx
 from bs4 import BeautifulSoup
 
-import auth
+from . import auth
 
 TZ = ZoneInfo("Asia/Shanghai")
 BB = "https://course.pku.edu.cn"
@@ -329,21 +330,22 @@ def announcements(course_id: str | None = None, limit: int = 20, include_history
     return {**data, "items": found[:limit], "total": len(found)}
 
 
-def download_root() -> Path:
-    return Path(os.environ.get("PKU_DOWNLOAD_DIR") or auth.HOME / "downloads").expanduser().resolve()
+def files_root() -> Path:
+    """下载和学期资料的默认根目录：PKU_FILES_DIR，默认 ~/PKU。"""
+    return Path(os.environ.get("PKU_FILES_DIR") or Path.home() / "PKU").expanduser()
 
 
-def download(url: str, subdir: str = "") -> dict:
-    """下载教学网文件到限定目录：不覆盖同名文件，内容相同则复用已有文件。"""
+def safe_name(name: str, limit: int = 120) -> str:
+    return re.sub(r'[\x00-\x1f/\\:*?"<>|]', "_", name).strip(" .")[:limit] or "untitled"
+
+
+def download(url: str, folder: Path, max_bytes: int | None = None) -> dict:
+    """下载教学网文件到 folder：不覆盖同名文件，内容相同则复用已有文件；超过 max_bytes 时跳过。"""
     url = urljoin(BB, url)
     parts = urlsplit(url)
     if parts.hostname != "course.pku.edu.cn" or not parts.path.startswith(("/bbcswebdav/", "/webapps/")):
         raise ValueError("只下载 course.pku.edu.cn 上的教学网文件")
-    root = download_root()
-    folder = (root / subdir).resolve()
-    if not folder.is_relative_to(root):
-        raise ValueError("目标目录越界")
-    folder.mkdir(parents=True, exist_ok=True)
+    folder = Path(folder).expanduser()
     seen = bb.generation
     for _ in range(2):
         with bb.client().stream("GET", url) as response:
@@ -351,12 +353,15 @@ def download(url: str, subdir: str = "") -> dict:
                 bb.login(seen)
                 continue
             response.raise_for_status()
+            size = int(response.headers.get("content-length") or 0)
+            if max_bytes and size > max_bytes:
+                return {"skipped": "too_large", "bytes": size, "url": url}
             header = Message()
             header["content-disposition"] = response.headers.get("content-disposition", "")
-            name = header.get_filename() or unquote(Path(response.url.path).name) or "attachment"
-            name = re.sub(r'[\x00-\x1f/\\:*?"<>|]', "_", name).strip(" .")[:150] or "attachment"
+            name = safe_name(header.get_filename() or unquote(Path(response.url.path).name) or "attachment", 150)
             if response.headers.get("content-type", "").startswith("text/html") and not name.endswith((".html", ".htm")):
                 raise RuntimeError("服务器返回网页而不是文件，可能无权访问或链接已失效")
+            folder.mkdir(parents=True, exist_ok=True)
             temp = folder / f".{name}.part"
             digest = hashlib.sha256()
             with temp.open("wb") as f:
@@ -452,7 +457,21 @@ def grades(refresh: bool = False) -> dict:
     return cache("grades", refresh, build)
 
 
-# ---- 真实账号验收 ---------------------------------------------------------
+# ---- 登录检查与真实账号验收 -------------------------------------------------
+
+def check_login(force: bool = False) -> dict:
+    """重新登录教学网和门户（门户通常需要 OTP），返回每个站点的结果。"""
+    result = {}
+    for site in (bb, portal):
+        try:
+            site.login(force=force)
+            result[site.name] = {"ok": True}
+        except auth.AuthError as e:
+            result[site.name] = {"ok": False, "status": e.status, "message": e.message}
+        except httpx.HTTPError as e:
+            result[site.name] = {"ok": False, "status": "network_error", "message": type(e).__name__}
+    return result
+
 
 def acceptance(force: bool = False) -> int:
     """重新登录教学网与门户并读取各类数据；只打印数量和课程名。"""
