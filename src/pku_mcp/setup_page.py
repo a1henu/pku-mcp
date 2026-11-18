@@ -8,6 +8,7 @@ import binascii
 import io
 import json
 import secrets
+import socketserver
 import threading
 import time
 import webbrowser
@@ -119,6 +120,11 @@ class SetupServer(ThreadingHTTPServer):
         self.token = secrets.token_urlsafe(24)
         self.last_active = time.time()
         self.completed = threading.Event()
+
+    def server_bind(self):
+        # HTTPServer 默认会对地址做反向 DNS（getfqdn），在部分 macOS 上要卡十几秒。
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "127.0.0.1", self.server_address[1]
 
     @property
     def url(self) -> str:

@@ -1,60 +1,94 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="1280" height="560" role="img" aria-label="pku-mcp：让 AI 帮你打理北大的课程、作业和课表">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#A3191F"/>
-      <stop offset="1" stop-color="#5E080C"/>
+      <stop offset="0" stop-color="#9B1B20"/>
+      <stop offset="1" stop-color="#5F0A0F"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
     <style>
+      .display { font-family: "SF Pro Display", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
       .sans { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif; }
-      .mono { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+      .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
     </style>
   </defs>
 
-  <rect width="1280" height="560" rx="28" fill="url(#bg)"/>
-  <circle cx="1180" cy="-40" r="260" fill="#fff" opacity="0.05"/>
-  <circle cx="90" cy="600" r="220" fill="#fff" opacity="0.05"/>
+  <rect width="1280" height="560" rx="24" fill="url(#bg)"/>
+  <rect width="1280" height="560" rx="24" fill="url(#glow)"/>
 
   <!-- 左侧：标题与要点 -->
-  <text x="80" y="112" class="mono" font-size="17" letter-spacing="4" fill="#fff" opacity="0.7">PEKING UNIVERSITY · MCP</text>
-  <text x="76" y="200" class="mono" font-size="88" font-weight="700" fill="#fff">pku-mcp</text>
-  <text x="80" y="262" class="sans" font-size="31" fill="#fff">让 AI 帮你打理北大的</text>
-  <text x="80" y="306" class="sans" font-size="31" fill="#fff">课程、作业和课表</text>
+  <text x="88" y="136" class="display" font-size="13" font-weight="600" letter-spacing="3" fill="#fff" fill-opacity="0.6">PEKING UNIVERSITY · MODEL CONTEXT PROTOCOL</text>
+  <text x="84" y="216" class="display" font-size="80" font-weight="700" letter-spacing="-2" fill="#fff">pku-mcp</text>
+  <text x="88" y="270" class="sans" font-size="26" font-weight="500" fill="#fff">让 AI 帮你打理北大的课程、作业和课表</text>
+  <text x="88" y="304" class="sans" font-size="17" fill="#fff" fill-opacity="0.72">登录和手机令牌全自动 · 本机运行 · 只读</text>
 
-  <g class="sans" font-size="18" fill="#fff">
-    <rect x="80" y="352" width="232" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
-    <text x="196" y="380" text-anchor="middle">自动登录 · 手机令牌</text>
-    <rect x="328" y="352" width="200" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
-    <text x="428" y="380" text-anchor="middle">作业 · 公告 · 资料</text>
-    <rect x="80" y="410" width="168" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
-    <text x="164" y="438" text-anchor="middle">课表 · 成绩</text>
-    <rect x="264" y="410" width="196" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
-    <text x="362" y="438" text-anchor="middle">一键整理整个学期</text>
+  <g class="sans" font-size="16" fill="#fff" fill-opacity="0.92">
+    <g transform="translate(88 348)">
+      <circle cx="9" cy="9" r="9" fill="#fff" fill-opacity="0.16"/>
+      <path d="M5 9.2l2.6 2.6L13 6.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15">作业 · 公告 · 课件</text>
+    </g>
+    <g transform="translate(340 348)">
+      <circle cx="9" cy="9" r="9" fill="#fff" fill-opacity="0.16"/>
+      <path d="M5 9.2l2.6 2.6L13 6.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15">课表 · 成绩 · 考试</text>
+    </g>
+    <g transform="translate(88 384)">
+      <circle cx="9" cy="9" r="9" fill="#fff" fill-opacity="0.16"/>
+      <path d="M5 9.2l2.6 2.6L13 6.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15">开学一键整理资料</text>
+    </g>
+    <g transform="translate(340 384)">
+      <circle cx="9" cy="9" r="9" fill="#fff" fill-opacity="0.16"/>
+      <path d="M5 9.2l2.6 2.6L13 6.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="28" y="15">一句话安装</text>
+    </g>
   </g>
-  <text x="80" y="500" class="sans" font-size="16" fill="#fff" opacity="0.65">本机运行 · 只读 · 支持任意 MCP 客户端</text>
 
-  <!-- 右侧：对话示意 -->
-  <rect x="644" y="74" width="560" height="448" rx="26" fill="#2A0003" opacity="0.16"/>
-  <rect x="648" y="84" width="560" height="448" rx="30" fill="#2A0003" opacity="0.10"/>
-  <rect x="640" y="56" width="560" height="448" rx="22" fill="#fff"/>
-  <circle cx="672" cy="86" r="7" fill="#FF5F57"/>
-  <circle cx="694" cy="86" r="7" fill="#FEBC2E"/>
-  <circle cx="716" cy="86" r="7" fill="#28C840"/>
-  <line x1="640" y1="110" x2="1200" y2="110" stroke="#EEE"/>
+  <text x="88" y="464" class="mono" font-size="14" fill="#fff" fill-opacity="0.55">github.com/a1henu/pku-mcp</text>
 
-  <g class="sans" font-size="18">
-    <rect x="808" y="132" width="368" height="46" rx="16" fill="#9E1B1E"/>
-    <text x="992" y="162" text-anchor="middle" fill="#fff">开学了，帮我把这学期的资料整理好</text>
+  <!-- 右侧：对话示意（课程与教室均为虚构） -->
+  <rect x="686" y="70" width="524" height="448" rx="22" fill="#2A0306" fill-opacity="0.14"/>
+  <rect x="690" y="80" width="524" height="448" rx="26" fill="#2A0306" fill-opacity="0.07"/>
+  <rect x="680" y="56" width="524" height="448" rx="18" fill="#fff"/>
+  <circle cx="704" cy="78" r="6" fill="#FF5F57"/>
+  <circle cx="724" cy="78" r="6" fill="#FEBC2E"/>
+  <circle cx="744" cy="78" r="6" fill="#28C840"/>
+  <text x="942" y="83" text-anchor="middle" class="sans" font-size="13" fill="#8C959F">AI 助手</text>
+  <line x1="680" y1="100.5" x2="1204" y2="100.5" stroke="#EAECEF"/>
 
-    <rect x="664" y="196" width="440" height="146" rx="16" fill="#F4F4F5"/>
-    <text x="688" y="230" fill="#1F2328"><tspan fill="#1A7F37">✓</tspan> 已自动登录教学网和校内门户</text>
-    <text x="688" y="262" fill="#1F2328"><tspan fill="#1A7F37">✓</tspan> 6 门课的课件和作业已归档到</text>
-    <text x="712" y="290" class="mono" font-size="16" fill="#57606A">~/PKU/26-27学年第1学期</text>
-    <text x="688" y="324" fill="#1F2328"><tspan fill="#9E1B1E">●</tspan> 本周待交：数据结构 lab2（周日 23:59）</text>
+  <g class="sans" font-size="16">
+    <!-- 用户 1 -->
+    <rect x="884" y="116" width="296" height="40" rx="14" fill="#9B1B20"/>
+    <text x="1032" y="141" text-anchor="middle" fill="#fff">开学了，帮我把这学期的资料整理好</text>
 
-    <rect x="1000" y="364" width="176" height="46" rx="16" fill="#9E1B1E"/>
-    <text x="1088" y="394" text-anchor="middle" fill="#fff">明天在哪上课？</text>
+    <!-- 工具调用 1 -->
+    <rect x="704" y="170" width="132" height="24" rx="12" fill="#F6F8FA" stroke="#E5E7EB"/>
+    <circle cx="718" cy="182" r="3.5" fill="#9B1B20"/>
+    <text x="728" y="186.5" class="mono" font-size="12" fill="#57606A">semester_sync</text>
 
-    <rect x="664" y="428" width="412" height="52" rx="16" fill="#F4F4F5"/>
-    <text x="688" y="461" fill="#1F2328">周三 08:00 理教 101 · 高等数学（单周）</text>
+    <!-- 助手 1 -->
+    <rect x="704" y="202" width="384" height="104" rx="14" fill="#F4F5F7"/>
+    <circle cx="724" cy="225" r="4" fill="#1A7F37"/>
+    <text x="738" y="230" fill="#1F2328">已整理 6 门课的课件和作业附件</text>
+    <text x="738" y="256" class="mono" font-size="13" fill="#6E7781">~/PKU/26-27学年第1学期</text>
+    <circle cx="724" cy="283" r="4" fill="#CF222E"/>
+    <text x="738" y="288" fill="#1F2328">本周待交 2 项：数据结构 lab2，周日 23:59</text>
+
+    <!-- 用户 2 -->
+    <rect x="1036" y="322" width="144" height="40" rx="14" fill="#9B1B20"/>
+    <text x="1108" y="347" text-anchor="middle" fill="#fff">明天在哪上课？</text>
+
+    <!-- 工具调用 2 -->
+    <rect x="704" y="376" width="124" height="24" rx="12" fill="#F6F8FA" stroke="#E5E7EB"/>
+    <circle cx="718" cy="388" r="3.5" fill="#9B1B20"/>
+    <text x="728" y="392.5" class="mono" font-size="12" fill="#57606A">schedule_list</text>
+
+    <!-- 助手 2 -->
+    <rect x="704" y="408" width="340" height="76" rx="14" fill="#F4F5F7"/>
+    <text x="724" y="437" fill="#1F2328"><tspan class="mono" font-size="14" fill="#6E7781">08:00</tspan>  理教 101 · 高等数学</text>
+    <text x="724" y="466" fill="#1F2328"><tspan class="mono" font-size="14" fill="#6E7781">13:00</tspan>  二教 203 · 数据结构（双周）</text>
   </g>
 </svg>
