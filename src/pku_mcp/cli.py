@@ -58,7 +58,7 @@ def setup(args) -> None:
     from . import setup_page
     server = setup_page.start(open_browser=not args.no_browser)
     print(f"配置页：{server.url}\n浏览器没有自动打开的话，复制上面的地址打开。"
-          "在页面里点「测试登录」成功后这里会自动退出（Ctrl+C 可提前退出）。")
+          "在页面里点「测试登录」成功后这里会自动退出（Ctrl+C 可提前退出）。", flush=True)
     try:
         done = setup_page.wait(server)
     except KeyboardInterrupt:
@@ -94,7 +94,7 @@ def otp_bind(args) -> None:
 def mcp_command() -> list[str]:
     """MCP 客户端里应填写的启动命令（绝对路径）。"""
     exe = shutil.which("pku-mcp") or sys.argv[0]
-    return [str(Path(exe).resolve()), "serve"]
+    return [str(Path(exe).absolute()), "serve"]  # 不解析符号链接：保留 ~/.local/bin 这个稳定入口
 
 
 def main() -> None:

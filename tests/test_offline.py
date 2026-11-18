@@ -144,6 +144,26 @@ def test_mcp_otp_code_uses_saved_seed_without_leaking_it():
 
 # ---- 本机配置页 -------------------------------------------------------------
 
+def test_setup_command_prints_url_immediately(tmp_path):
+    """Agent 常把 pku-mcp setup 放后台运行，地址必须立刻输出，不能等命令结束。"""
+    import subprocess
+    import threading
+    proc = subprocess.Popen([sys.executable, "-m", "pku_mcp", "setup", "--no-browser"], stdout=subprocess.PIPE,
+                            env={**os.environ, "PKU_MCP_HOME": str(tmp_path)}, text=True, encoding="utf-8")
+    try:
+        lines = []
+        reader = threading.Thread(target=lambda: lines.append(proc.stdout.readline()), daemon=True)
+        reader.start()
+        reader.join(15)
+        assert lines, "pku-mcp setup 没有立即输出配置页地址"
+        line = lines[0]
+        assert re.match(r"配置页：http://127\.0\.0\.1:\d+/\S{20,}", line), line
+        assert httpx.get(line.removeprefix("配置页：").strip()).status_code == 200
+    finally:
+        proc.kill()
+        proc.wait()
+
+
 def test_setup_page_saves_account_and_otp(monkeypatch):
     def offline(*args):
         raise httpx.ConnectError("offline")
