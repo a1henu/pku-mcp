@@ -1,6 +1,7 @@
 """本机配置网页：在浏览器里填学号密码、粘贴手机令牌二维码、测试登录。
 
-只监听 127.0.0.1 的随机端口，地址带随机 token，校验 Host/Origin，闲置 15 分钟自动关闭。
+只监听 127.0.0.1 的随机端口，地址带随机 token，校验 Host/Origin。页面开着时自动保活，
+关掉页面 15 分钟后（最长 2 小时）自动关闭。
 密码和 OTP 密钥只在本机进程内处理，不经过 Agent 对话。
 """
 import base64
@@ -17,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from . import auth
 
 IDLE_TIMEOUT = 900
+MAX_LIFETIME = 7200
 MAX_BODY = 8 << 20
 BIND_URL = "https://iaaa.pku.edu.cn/iaaa/login2OTP.jsp"
 HELP_URL = "https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html"
@@ -29,11 +31,13 @@ body{font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;max-
 h1{font-size:22px}h2{font-size:17px;margin:0 0 8px}section{border:1px solid #d0d7de;border-radius:8px;padding:16px;margin:16px 0}
 label{display:block;margin:8px 0 4px}input[type=text],input[type=password]{width:100%;box-sizing:border-box;padding:8px;font-size:15px}
 button{margin-top:10px;padding:8px 16px;font-size:15px;cursor:pointer}ol{padding-left:20px}
-#paste{border:2px dashed #8c959f;border-radius:8px;padding:20px;text-align:center;color:#57606a;margin:8px 0}
+button.primary{background:#9B1B20;color:#fff;border:0;border-radius:6px;padding:10px 18px}
+#closed{background:#fff1f0;border:1px solid #ffccc7;border-radius:8px;padding:10px 14px}
 .ok{color:#1a7f37}.bad{color:#cf222e}.code{font:bold 28px monospace;letter-spacing:4px}.muted{color:#57606a;font-size:13px}
 </style></head><body>
 <h1>pku-mcp 本机配置</h1>
 <p class="muted">本页只在你的电脑上运行（127.0.0.1）。密码和手机令牌密钥保存在 <code id="home"></code>，不会发给 AI 对话。</p>
+<p id="closed" class="bad" hidden>配置页已经关闭了。请回到 AI 对话让它重新打开，或在终端运行 <code>pku-mcp setup</code>。</p>
 <p id="summary"></p>
 
 <section><h2>① 北大账号</h2>
@@ -47,11 +51,11 @@ button{margin-top:10px;padding:8px 16px;font-size:15px;cursor:pointer}ol{padding
 <ol>
 <li>打开 <a href="BIND_URL" target="_blank">北大手机令牌绑定页</a>（<a href="HELP_URL" target="_blank">官方说明</a>），登录后按提示操作，直到出现<b>令牌绑定二维码</b>（不是 App 下载二维码）。重新绑定可能让旧令牌失效，以页面说明为准。</li>
 <li>建议先用手机上的令牌 App 扫这个二维码，作为备用。</li>
-<li>截图二维码：macOS 按 <kbd>Control+Shift+Command+4</kbd> 框选，Windows 按 <kbd>Win+Shift+S</kbd>。回到本页，按 <kbd>⌘V</kbd> / <kbd>Ctrl+V</kbd> 粘贴；也可以选择图片文件，或在下方粘贴密钥文本。</li>
+<li>截图二维码到剪贴板：macOS 按 <kbd>Control+Shift+Command+4</kbd> 框选，Windows 按 <kbd>Win+Shift+S</kbd>。回到本页点「读取剪贴板里的二维码」；也可以选择图片文件，或在下方粘贴密钥文本。</li>
 <li>下面会显示 6 位口令。北大页面要求输入口令时填它，直到页面显示绑定成功。截图用完可以删掉。</li>
 </ol>
-<div id="paste">在此页面按 ⌘V / Ctrl+V 粘贴二维码截图</div>
-<input id="file" type="file" accept="image/*">
+<p><button class="primary" onclick="sendOtp({clipboard: true})">读取剪贴板里的二维码</button></p>
+<label>或选择二维码图片文件</label><input id="file" type="file" accept="image/*">
 <label>或粘贴 otpauth:// 链接 / Base32 密钥</label><input id="otp-text" type="password" autocomplete="off">
 <button onclick="saveOtpText()">保存密钥</button>
 <p id="otp-result"></p></section>
@@ -65,13 +69,19 @@ const base = location.pathname.replace(/\\/$/, "");
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 async function api(path, body) {
-  const r = await fetch(base + path, body === undefined ? {} : {method: "POST",
-    headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
-  return r.json();
+  try {
+    const r = await fetch(base + path, body === undefined ? {} : {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    return await r.json();
+  } catch (e) {
+    $("closed").hidden = false;
+    return {ok: false, error: "配置页已经关闭，请重新打开"};
+  }
 }
 function show(id, ok, text) { $(id).className = ok ? "ok" : "bad"; $(id).innerHTML = text; }
 async function refresh() {
   const s = await api("/status");
+  if (s.ok === false) return;
   $("home").textContent = s.home;
   if (s.username) $("username").value = s.username;
   $("summary").innerHTML = `账号：${s.password_stored ? "已保存 " + esc(s.username) : "未保存"}；手机令牌：${s.otp.configured ? "已绑定" : "未绑定"}`;
@@ -96,10 +106,12 @@ function sendImage(blob) { const fr = new FileReader(); fr.onload = () => sendOt
 document.addEventListener("paste", e => {
   for (const item of e.clipboardData.items) if (item.type.startsWith("image/")) { e.preventDefault(); return sendImage(item.getAsFile()); }
 });
+setInterval(() => api("/status"), 60000);  // 页面开着就保活
 $("file").addEventListener("change", e => e.target.files[0] && sendImage(e.target.files[0]));
 async function check() {
   show("check-result", true, "正在登录……");
   const r = await api("/check", {});
+  if (!r.ok) return show("check-result", false, esc(r.error));
   const names = {blackboard: "教学网", portal: "校内门户"};
   const lines = Object.entries(r.sites).map(([k, v]) => v.ok ? `<span class="ok">✓ ${names[k]}</span>` :
     `<span class="bad">✗ ${names[k]}：${esc(v.message || v.status)}</span>`);
@@ -118,7 +130,7 @@ class SetupServer(ThreadingHTTPServer):
     def __init__(self):
         super().__init__(("127.0.0.1", 0), Handler)
         self.token = secrets.token_urlsafe(24)
-        self.last_active = time.time()
+        self.started = self.last_active = time.time()
         self.completed = threading.Event()
 
     def server_bind(self):
@@ -200,7 +212,9 @@ def account(username: str, password: str) -> dict:
 
 
 def otp(body: dict) -> dict:
-    if body.get("image"):
+    if body.get("clipboard"):
+        text = auth.read_qr(auth.clipboard_image())
+    elif body.get("image"):
         from PIL import Image, UnidentifiedImageError
         try:
             image = Image.open(io.BytesIO(base64.b64decode(body["image"].split(",", 1)[-1])))
@@ -245,7 +259,7 @@ def wait(server: SetupServer) -> bool:
 
 def _watchdog(server: SetupServer) -> None:
     global _server
-    while time.time() - server.last_active < IDLE_TIMEOUT:
+    while time.time() - server.last_active < IDLE_TIMEOUT and time.time() - server.started < MAX_LIFETIME:
         time.sleep(10)
     with _lock:
         if _server is server:

@@ -144,6 +144,25 @@ def read_qr(image) -> str:
     raise ValueError("图片里没有识别到 otpauth:// 二维码。请只截取北大页面上的手机令牌绑定二维码")
 
 
+def clipboard_image():
+    """读取系统剪贴板里的图片；复制的是图片文件时打开该文件。"""
+    from PIL import Image, ImageGrab, UnidentifiedImageError
+    try:
+        clip = ImageGrab.grabclipboard()
+    except Exception:  # noqa: BLE001 - 例如 Linux 没装 wl-paste / xclip
+        raise ValueError("读不到系统剪贴板，请改用选择图片文件") from None
+    for name in clip if isinstance(clip, list) else []:
+        try:
+            image = Image.open(name)
+            image.load()
+            return image
+        except (OSError, UnidentifiedImageError):
+            continue
+    if clip is None or isinstance(clip, list):
+        raise ValueError("剪贴板里没有图片。请先把二维码截图到剪贴板，再点「读取剪贴板里的二维码」")
+    return clip
+
+
 def save_otp(text: str) -> dict:
     otp = parse_otp(text)
     set_secret("otp", json.dumps(otp))

@@ -194,6 +194,38 @@ def test_setup_page_saves_account_and_otp(monkeypatch):
         assert oct(auth.SECRETS.stat().st_mode & 0o777) == "0o600"
 
 
+def test_setup_page_reads_qr_from_clipboard(monkeypatch, tmp_path):
+    from PIL import ImageGrab
+    qr = Image.open(io.BytesIO(qr_png(f"otpauth://totp/PKU:clip?secret={SEED}")))
+    copied_file = tmp_path / "qr.png"
+    copied_file.write_bytes(qr_png(f"otpauth://totp/PKU:file?secret={SEED}"))
+
+    def broken():
+        raise NotImplementedError("wl-paste or xclip is required")
+
+    server = setup_page.start(open_browser=False)
+    with httpx.Client() as http:
+        def read(clipboard):
+            monkeypatch.setattr(ImageGrab, "grabclipboard", clipboard)
+            return http.post(server.url + "/otp", json={"clipboard": True}).json()
+
+        assert read(lambda: qr)["label"] == "PKU:clip"
+        assert read(lambda: [str(tmp_path / "notes.txt"), str(copied_file)])["label"] == "PKU:file"
+        assert "剪贴板里没有图片" in read(lambda: None)["error"]
+        assert "选择图片文件" in read(broken)["error"]
+
+
+def test_setup_page_script_is_valid_javascript(tmp_path):
+    import shutil
+    import subprocess
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("没有 node")
+    script = tmp_path / "page.js"
+    script.write_text(re.search(r"<script>(.*)</script>", setup_page.PAGE, re.S)[1], encoding="utf-8")
+    subprocess.run([node, "--check", str(script)], check=True)
+
+
 # ---- 学期资料整理 -----------------------------------------------------------
 
 def test_semester_sync_layout_and_incremental(monkeypatch, tmp_path):

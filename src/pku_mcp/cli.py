@@ -69,7 +69,7 @@ def setup(args) -> None:
 def otp_bind(args) -> None:
     if auth.get_secret("otp") and not args.replace:
         raise SystemExit("已有 OTP 密钥；确认要替换时加 --replace。")
-    from PIL import Image, ImageGrab, UnidentifiedImageError
+    from PIL import Image, UnidentifiedImageError
     try:
         if args.qr:
             try:
@@ -77,10 +77,7 @@ def otp_bind(args) -> None:
             except (OSError, UnidentifiedImageError):
                 raise SystemExit(f"读不到图片 {args.qr}") from None
         elif args.clipboard:
-            clip = ImageGrab.grabclipboard()
-            if clip is None or isinstance(clip, list):
-                raise SystemExit("剪贴板里没有图片。截取二维码后再试，或改用 pku-mcp setup 在网页里粘贴。")
-            text = auth.read_qr(clip)
+            text = auth.read_qr(auth.clipboard_image())
         else:
             text = ask_secret("粘贴 otpauth:// 链接或 Base32 密钥（输入不回显）: ", args.stdin)
         otp = auth.save_otp(text)
