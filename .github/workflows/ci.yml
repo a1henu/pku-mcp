@@ -6,16 +6,24 @@ on:
   pull_request:
 
 jobs:
-  smoke:
+  test:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --locked
-      - run: uv run --locked python smoke.py
-        env:
-          PYTHONUTF8: "1"
+      - name: 离线测试
+        run: |
+          uv sync --locked
+          uv run pytest
+      - name: 按安装指南的方式安装并启动
+        shell: bash
+        run: |
+          uv tool install --python 3.12 .
+          pku-mcp status
+          pku-mcp --help
