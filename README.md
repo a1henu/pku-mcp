@@ -1,61 +1,118 @@
 # pku-mcp
 
-面向北大学生的本地优先助手。首版提供本地 stdio MCP：`due_list`、`schedule_list`、`auth_status`。目前读取现有课程工作区的已审核待办和课表摘录，不直接登录或发起写操作。
+北大同学的本地 MCP 服务：让你的 AI Agent 直接读教学网的课程、作业、公告和资料，以及校内门户的课表和成绩。账号密码与手机令牌（OTP）保存在本机钥匙串，登录、续登、OTP 都自动完成，不依赖 pku3b 或浏览器。
 
-## 一句话交给你的 Agent
+## 一句话安装
 
-> 请从 GitHub 的 `a1henu/pku-mcp`（如果还不可见，请用我提供的本地 checkout）克隆或打开项目，读 README 和 AGENTS.md，按「安装与验收」安装并跑 smoke，再根据我的 MCP 客户端配置演示；如我需要接入本人账号，请按「北大账号与手机令牌」每次只教我一步，等我自行完成再继续，绝不要索取密码、口令、二维码或 Cookie，也不要提交作业。
+把下面这句话原样发给你的 Agent（Claude Code、Codex、Cursor 等能运行终端命令的都可以）：
 
-## 安装与验收
+> 请帮我安装并配置 pku-mcp：打开 https://github.com/a1henu/pku-mcp ，严格按 README 的「给 Agent 的安装步骤」逐步执行；需要我本人操作的步骤（输入密码、绑定手机令牌）请停下来一步步教我，等我说完成再继续。不要让我把密码或令牌密钥发到对话里。
 
-1. 准备 Git 和 [uv](https://docs.astral.sh/uv/getting-started/installation/)。Agent 应先检查 `git --version`、`uv --version`，缺工具时说明安装动作，不关闭证书校验。
-2. 进入克隆目录，运行 `uv sync --locked` 和 `uv run --locked python smoke.py`。看到 `PASS` 代表真实 stdio 客户端已完成握手并调用三个工具；不需要北大账号。
-3. 运行 `uv run --locked python smoke.py --demo .local/demo`，生成合成演示数据。若目录已有快照，换新目录，不覆盖。
-4. 按你的客户端说明添加本地 stdio 服务：命令填 **uv 的绝对路径**，参数为 `--directory`、**仓库绝对路径**、`run`、`--locked`、`python`、`server.py`，环境变量 `PKU_WORKSPACE` 填 **`.local/demo` 的绝对路径**。重载客户端，请 Agent 调用 `due_list`；应看到「示例作业」。在普通 shell 中也可运行 `PKU_WORKSPACE="$PWD/.local/demo" uv run --locked python server.py`；服务等候 stdio 消息属于正常现象。
+## 给 Agent 的安装步骤
 
-### 北大账号与手机令牌
+> 写给 Agent：每一步先说明要做什么，再执行；标有 **【本人】** 的步骤由用户在自己的终端或浏览器完成，你只负责给出命令并解释，**不要在对话里索要密码、OTP 密钥或二维码**。命令里的 `~/pku-mcp` 可换成用户指定的目录，后文统一称「仓库目录」。
 
-1. 先问本人是否已绑定；已绑定就不要重新绑定。未绑定时，由本人在浏览器打开[北大统一身份认证手机令牌说明](https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html)，按官方页面指引登录并用页面支持的手机 App 完成绑定。二维码、密钥、验证码只在本人设备上处理，不截图发给 Agent。
-2. 不需要安装 `pku3b`。在本机图形桌面的终端运行 `uv run --locked --extra campus playwright install chromium`，再运行 `uv run --locked --extra campus python campus.py`。在弹出的教学网浏览器里自行登录，需要时输入 OTP；看到课程首页后回终端按 Enter。专用浏览器会话保存在本机 `.local/campus-browser/`，不要上传或分享。
-3. 看到 `refreshed` 后，用 `--extra campus` 启动 MCP，并调用 `course_list(refresh=true)`。有效会话可在后台复用，不弹窗、不等输入。若返回 `reauth_required`，旧快照仍可读，需在本机重新运行 `campus.py` 登录。该工具无需 `PKU_WORKSPACE`；待办和课表仍读兼容工作区或演示快照。
+**1. 检查工具。** 运行 `git --version` 和 `uv --version`。缺 uv 时按系统安装：macOS 用 `brew install uv` 或 `curl -LsSf https://astral.sh/uv/install.sh | sh`；Windows 用 `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`。遇到证书错误时报告给用户，不要关闭证书校验。
 
-在 MCP 客户端配置相同命令和环境变量。课表是历史摘录，不按自然日期推断教学周；新的来源快照也不等于待办已经人工复核。
+**2. 下载并安装依赖。**
 
-## 从现有工作流出发
+```sh
+git clone https://github.com/a1henu/pku-mcp.git ~/pku-mcp
+cd ~/pku-mcp
+uv sync --locked
+```
 
-| 日常需求 | 现有做法 | 拟做工具 |
-| --- | --- | --- |
-| 今天在哪上课 | `pku3b coursetable --force --raw`；按学期、班号和周次核对 | `schedule_list`：按日期查节次、地点、单双周；之后支持本地 ICS 导出 |
-| 哪些作业快到期 | `scripts/sync_courses.py` 合并正式作业、公告、目录和普通内容；人工核对后维护任务 JSON、DDL 表 | `due_list`：返回要求、来源、更新时间和未覆盖范围；`sync_preview`：列新增、冲突和变更，不覆盖个人进度 |
-| 找题目和资料 | 从内容页下载附件，按条目保存，SHA-256 去重并保留旧版本 | `attachment_list` / `attachment_download`：限定下载目录，返回本地路径和摘要 |
-| 交作业 | 核对课程、入口、截止和文件，提交后回读平台时间与附件名 | 先做 `submission_status`，再做 `submission_prepare`；真提交另行设计本机确认，绑定目标和文件摘要；超时先查回执，绝不盲重试 |
-| 补看课程 | 本机 `pku3b video` 提供列表和下载子命令；未实测当前账号可见课程 | `replay_list` 先于下载；仅下载本人有权访问且允许下载的回放，不公开分发 |
-| OTP 绑定与登录 | 官方北大 App 或 FreeOTP 由本人绑定；当前工作区另用本机 helper，最近一次刷新因钥匙串失败 | MCP 只报认证状态和修复指引；绑定、换机和输入口令留在官方入口或本机交互，不把口令暴露成工具 |
+**3. 离线自检。** `uv run --locked python smoke.py`，看到 `PASS` 说明安装正常（不需要北大账号）。
 
-工作流来源：本机 `courses/yr4` 的 `AGENTS.md`、`DDL.md`、`.workspace/tasks.json`、`scripts/sync_courses.py` 与 `pku3b --help`。截至 2026-11-18 本次梳理未刷新个人数据；原工作区记录的最近全量成功是 11 月 12 日，11 月 17 日刷新失败。
+**4. 【本人】保存北大账号。** 请用户在**自己的终端**进入仓库目录运行：
 
-## 门户与校园服务
+```sh
+uv run python cli.py setup
+```
 
-本次只核对公开资料，没有进入账号登录后的服务菜单。以下是候选，不代表已验证当前账号权限，也不把各子站当成门户同一套接口。
+按提示输入学号，再输入 IAAA 密码（不回显）。密码存进系统钥匙串（macOS 钥匙串 / Windows 凭据管理器 / Linux Secret Service）。已经在用 pku3b 的同学可以改用 `uv run python cli.py setup --from-pku3b` 一键迁移，之后不再依赖 pku3b。
 
-| 范围 | 适合 MCP 化 | 保留给官网 |
-| --- | --- | --- |
-| 教务 | 课表、考试地点和时间、校历；成绩按需单独查询 | 选退课、成绩单申请；考试与成绩入口待登录后核对 |
-| 校园卡 | 可考虑仅返回余额和低余额提示，默认不读消费流水 | 充值、挂失、解挂 |
-| 图书馆 | 优先馆藏检索、借阅到期和预约规则；个人借阅接口待验证 | 真实预约和续借先跳转官网，不抢座、不代签到 |
-| 校园网和账号 | 服务状态、常用入口、OTP 修复指引 | 密码更改、令牌绑定与恢复 |
+**5. 真实账号验收。** 运行 `uv run python cli.py check`：
 
-官方来源：[校内信息门户](https://portal.pku.edu.cn/portal2017/)、[计算中心](https://cc.pku.edu.cn/)、[校园卡服务大厅](https://card.pku.edu.cn/)、[图书馆研修座位](https://lib.pku.edu.cn/3wxbz/39kjzwyy/392yxzw/index.htm)、[手机令牌说明](https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html)。研修专座有资格限制，不等于本科生通用座位入口。
+- 全部 `PASS`：说明这个账号不需要 OTP，或者本机已有可用的 OTP 来源，直接跳到第 7 步。
+- 「门户登录」报 `otp_missing`：账号开启了手机令牌，做第 6 步。
+- 报 `login_failed`：多半是密码错了，请用户重新运行第 4 步。**不要连续重试**，IAAA 多次失败会锁定账号半小时；程序失败后也会自动暂停 5 分钟。
 
-## 开发顺序
+**6. 【本人】绑定手机令牌（OTP）。** 先问用户：现在是否已经在手机上用令牌登录北大？
 
-1. 用脱敏模拟数据实现本地 stdio 服务，首批只做 `due_list`、`schedule_list` 和 `auth_status`，不需要北大账号即可测试。
-2. 接入只读 `pku3b` adapter 与可选的课程内容来源。返回 `verified_at`、`freshness`、`coverage`，让“没有发现”与“根本没查到”可区分。
-3. 加附件、回放列表和下载。通过只读提交状态验证回执解析，再决定是否加入提交能力。
-4. 补门户服务目录：逐项记录账号角色、页面入口、允许的访问方式和读写边界，再按使用频率接入。
+- 本机已安装 `pku-otp` 命令的，程序会自动调用它，无需绑定，回到第 5 步。
+- 否则需要让本机拿到令牌密钥。密钥一般只在绑定时以二维码形式出现，所以要（重新）绑定一次，绑定时用手机 App 和本工具**扫同一个二维码**，两边就都能生成口令：
+  1. 用户在浏览器打开 [北大手机令牌绑定入口](https://iaaa.pku.edu.cn/iaaa/login2OTP.jsp)（说明见[官方帮助](https://iaaa.pku.edu.cn/iaaa/resources/help/otpHelp.html)），登录后按页面提示操作，直到出现**令牌绑定二维码**（不是 App 下载二维码）。重新绑定可能让旧令牌失效，以页面说明为准。
+  2. 先用手机上的令牌 App 扫码（作为备用）。
+  3. 只框选二维码截图到剪贴板：macOS 按 `Control+Shift+Command+4`，Windows 按 `Win+Shift+S`。然后在仓库目录运行 `uv run python cli.py otp bind --clipboard`。也可以把截图存成文件，用 `--qr 图片路径`；页面若直接给出密钥文本，可运行 `uv run python cli.py otp bind` 隐藏粘贴。
+  4. 命令会显示当前 6 位口令。页面要求输入口令时填它（或填手机 App 上的，二者一致），直到网页显示绑定成功。截图用完就删掉。
+  5. 回到第 5 步重新验收。
 
-首版验收：登录失败仍能显示上次结果并标明时间；能区分退课与在修、同名不同班；日期级截止不补钟点；能保留来源冲突和“本地完成／已提交／已评分”的区别。
+**7. 接入 MCP 客户端。** 把 `/绝对路径/pku-mcp` 换成仓库目录的绝对路径（`pwd` 可查）：
 
-## 开发与提交
+```sh
+# Claude Code
+claude mcp add pku -s user -- uv --directory /绝对路径/pku-mcp run --locked python server.py
+# Codex
+codex mcp add pku -- uv --directory /绝对路径/pku-mcp run --locked python server.py
+```
 
-从 `main` 建功能分支，改动用合成样例跑 `uv sync --locked`、`uv run --locked python smoke.py` 和 `git diff --check`。依赖有变化时提交 `uv.lock`。提交前检查 `git diff --cached`，只暂存代码、文档和非个人测试数据；不要提交 `.local/`、下载、真实快照或凭据。按功能拆分提交，PR 写清验证范围、未验证项和隐私影响。
+其他客户端（Cursor、Claude Desktop 等）在 MCP 配置里加入下面这段；`command` 最好写 `which uv` 输出的绝对路径：
+
+```json
+{"mcpServers": {"pku": {"command": "uv", "args": ["--directory", "/绝对路径/pku-mcp", "run", "--locked", "python", "server.py"]}}}
+```
+
+重启客户端后，让 Agent 调用 `auth_status(check_login=true)`，两个站点都显示 `valid` 或 `relogged_in` 就完成了。可以试着问：「我还有哪些作业没交？」「明天在哪上课？」
+
+## 能做什么
+
+| 工具 | 内容 |
+| --- | --- |
+| `assignment_list` | 各课作业：截止时间、是否已交、最后提交时间、成绩、要求与附件；默认只列未交，按截止排序 |
+| `announcement_list` | 本学期各课公告：标题、时间、发布人、正文、附件 |
+| `course_list` / `course_hide` | 教学网课程；`course_hide` 在本机把退课或不关注的课排除出作业和公告 |
+| `content_list` | 一门课的全部教学内容（含子文件夹），可按类型或关键词过滤 |
+| `attachment_download` | 把教学网附件下载到本机目录，不覆盖已有文件，相同内容自动复用 |
+| `schedule_list` | 门户个人课表：节次与钟点、地点、教师、单双周、考试安排；可按星期或日期筛选 |
+| `grade_list` | 各学期成绩与 GPA |
+| `otp_code` | 当前手机令牌口令，方便 Agent 帮你登录其他北大网页 |
+| `auth_status` | 账号、OTP 来源、会话状态；`check_login=true` 时实际验证并自动续登 |
+
+结果都带 `fetched_at`；10 分钟内复用缓存，传 `refresh=true` 强制刷新。刷新失败时不覆盖旧数据，返回上次成功的结果并附 `stale` 说明原因。
+
+设置了环境变量 `PKU_WORKSPACE`（指向自己维护的课程工作区）时还会多一个 `workspace_tasks`，读取人工复核过的任务清单。
+
+## 安全与隐私
+
+- 密码和 OTP 密钥只存在系统钥匙串；没有可用钥匙串时退回仓库内 `.local/secrets.json`（权限 0600）。登录会话、缓存、下载都在 `.local/`，已被 git 忽略，不要上传或分享。
+- OTP 密钥存在电脑上，意味着「第二因素」也在这台电脑里：请给电脑账户设好密码，不要和他人共用。
+- 任何工具都不返回密码、密钥或 Cookie。`otp_code` 返回的口令约 30 秒内有效，只用于你本人授权的登录。
+- 工具只读：不提交作业、不选课、不改教学网。网页正文按不可信数据处理。
+- 常用命令：`uv run python cli.py status` 查看配置；`logout` 清除会话；`forget` 删除密码、OTP 与会话；`otp unbind` 只删除 OTP 密钥。
+
+## 已知限制
+
+- 不推断教学周：课表给出单双周和周次范围，具体是第几周需要自行确认。
+- 作业来自各课程菜单下的内容区；只在公告里布置的任务要再看 `announcement_list`。
+- 课程回放、选课、校园卡、图书馆尚未接入。
+- 真实账号验收目前在 macOS 上完成；Windows / Linux 由 CI 跑离线测试。
+
+## 开发
+
+| 文件 | 作用 |
+| --- | --- |
+| `auth.py` | 钥匙串存储、TOTP（RFC 6238）、外部 OTP 命令、IAAA 登录（RSA 加密密码）、会话 Cookie、失败冷却 |
+| `campus.py` | 教学网与门户客户端：会话失效自动重登、页面解析、缓存、下载；`acceptance()` 是真实账号验收 |
+| `server.py` | MCP 工具定义（stdio） |
+| `cli.py` | 本机配置命令：`setup`、`otp`、`status`、`check`、`logout`、`forget` |
+| `smoke.py` | 离线测试（默认）与真实账号端到端测试（`--live`） |
+
+流程：
+
+1. 从 `main` 拉功能分支：`git switch -c feat/xxx`。
+2. 改动后跑 `uv run --locked python smoke.py` 和 `git diff --check`；涉及登录或解析时再跑 `uv run python smoke.py --live`（经 MCP stdio 用真实账号走完全部工具）。
+3. 新增解析逻辑时，在 `smoke.py` 里补合成 HTML 的离线断言；不要提交真实页面、个人数据、学号或截图。
+4. 依赖有变化时用 `uv add` 并提交 `uv.lock`。
+5. 按功能拆分提交（`feat:` / `fix:` / `docs:` / `test:` / `ci:`），提交前看一遍 `git diff --cached`。
+6. 推送并开 PR，写清验证范围（离线 / 真实账号 / 未验证项）和隐私影响；CI 在 macOS、Linux、Windows 上跑离线测试，通过后合并。
