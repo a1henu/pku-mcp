@@ -37,12 +37,12 @@ button{margin-top:10px;padding:8px 16px;font-size:15px;cursor:pointer}ol{padding
 
 <section><h2>① 北大账号</h2>
 <label>学号 / 职工号</label><input id="username" type="text" autocomplete="username">
-<label>IAAA 密码</label><input id="password" type="password" autocomplete="current-password">
+<label>密码（登录门户、教学网用的那个）</label><input id="password" type="password" autocomplete="current-password">
 <button onclick="saveAccount()">保存</button><p id="account-result"></p></section>
 
 <section><h2>② 手机令牌（OTP）</h2>
 <p id="otp-state"></p>
-<p>门户、成绩等页面登录时要动态口令。本工具要拿到和手机 App 相同的令牌密钥，才能自动生成口令：</p>
+<p>没开手机令牌的同学跳过这一步。开了的话，门户、成绩等页面登录时要 6 位动态口令；把令牌的绑定二维码交给本工具，它就能像手机 App 一样自动生成口令：</p>
 <ol>
 <li>打开 <a href="BIND_URL" target="_blank">北大手机令牌绑定页</a>（<a href="HELP_URL" target="_blank">官方说明</a>），登录后按提示操作，直到出现<b>令牌绑定二维码</b>（不是 App 下载二维码）。重新绑定可能让旧令牌失效，以页面说明为准。</li>
 <li>建议先用手机上的令牌 App 扫这个二维码，作为备用。</li>
