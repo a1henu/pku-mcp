@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="1280" height="560" role="img" aria-label="pku-mcp：让 AI 帮你打理北大的课程、作业和课表">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A3191F"/>
+      <stop offset="1" stop-color="#5E080C"/>
+    </linearGradient>
+    <style>
+      .sans { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif; }
+      .mono { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="560" rx="28" fill="url(#bg)"/>
+  <circle cx="1180" cy="-40" r="260" fill="#fff" opacity="0.05"/>
+  <circle cx="90" cy="600" r="220" fill="#fff" opacity="0.05"/>
+
+  <!-- 左侧：标题与要点 -->
+  <text x="80" y="112" class="mono" font-size="17" letter-spacing="4" fill="#fff" opacity="0.7">PEKING UNIVERSITY · MCP</text>
+  <text x="76" y="200" class="mono" font-size="88" font-weight="700" fill="#fff">pku-mcp</text>
+  <text x="80" y="262" class="sans" font-size="31" fill="#fff">让 AI 帮你打理北大的</text>
+  <text x="80" y="306" class="sans" font-size="31" fill="#fff">课程、作业和课表</text>
+
+  <g class="sans" font-size="18" fill="#fff">
+    <rect x="80" y="352" width="232" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
+    <text x="196" y="380" text-anchor="middle">自动登录 · 手机令牌</text>
+    <rect x="328" y="352" width="200" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
+    <text x="428" y="380" text-anchor="middle">作业 · 公告 · 资料</text>
+    <rect x="80" y="410" width="168" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
+    <text x="164" y="438" text-anchor="middle">课表 · 成绩</text>
+    <rect x="264" y="410" width="196" height="44" rx="22" fill="#fff" fill-opacity="0.14"/>
+    <text x="362" y="438" text-anchor="middle">一键整理整个学期</text>
+  </g>
+  <text x="80" y="500" class="sans" font-size="16" fill="#fff" opacity="0.65">本机运行 · 只读 · 支持任意 MCP 客户端</text>
+
+  <!-- 右侧：对话示意 -->
+  <rect x="644" y="74" width="560" height="448" rx="26" fill="#2A0003" opacity="0.16"/>
+  <rect x="648" y="84" width="560" height="448" rx="30" fill="#2A0003" opacity="0.10"/>
+  <rect x="640" y="56" width="560" height="448" rx="22" fill="#fff"/>
+  <circle cx="672" cy="86" r="7" fill="#FF5F57"/>
+  <circle cx="694" cy="86" r="7" fill="#FEBC2E"/>
+  <circle cx="716" cy="86" r="7" fill="#28C840"/>
+  <line x1="640" y1="110" x2="1200" y2="110" stroke="#EEE"/>
+
+  <g class="sans" font-size="18">
+    <rect x="808" y="132" width="368" height="46" rx="16" fill="#9E1B1E"/>
+    <text x="992" y="162" text-anchor="middle" fill="#fff">开学了，帮我把这学期的资料整理好</text>
+
+    <rect x="664" y="196" width="440" height="146" rx="16" fill="#F4F4F5"/>
+    <text x="688" y="230" fill="#1F2328"><tspan fill="#1A7F37">✓</tspan> 已自动登录教学网和校内门户</text>
+    <text x="688" y="262" fill="#1F2328"><tspan fill="#1A7F37">✓</tspan> 6 门课的课件和作业已归档到</text>
+    <text x="712" y="290" class="mono" font-size="16" fill="#57606A">~/PKU/26-27学年第1学期</text>
+    <text x="688" y="324" fill="#1F2328"><tspan fill="#9E1B1E">●</tspan> 本周待交：数据结构 lab2（周日 23:59）</text>
+
+    <rect x="1000" y="364" width="176" height="46" rx="16" fill="#9E1B1E"/>
+    <text x="1088" y="394" text-anchor="middle" fill="#fff">明天在哪上课？</text>
+
+    <rect x="664" y="428" width="412" height="52" rx="16" fill="#F4F4F5"/>
+    <text x="688" y="461" fill="#1F2328">周三 08:00 理教 101 · 高等数学（单周）</text>
+  </g>
+</svg>
