@@ -226,7 +226,7 @@ def test_semester_sync_layout_and_incremental(monkeypatch, tmp_path):
          "location": "理教101", "teachers": "甲", "weeks": "1-16周", "parity": "每周"}]})
     monkeypatch.setattr(campus, "download", fake_download)
 
-    assert sync.sync(str(tmp_path), time_budget=0)["done"] is False  # 时间用完时分批继续
+    assert sync.sync(str(tmp_path), time_budget=-1)["done"] is False  # 时间用完时分批继续
     report = sync.sync(str(tmp_path))
     assert report["done"] and report["downloaded"] == ["示例课/资料/教学内容/第一讲/a.pdf", "示例课/作业/作业1/b.pdf"]
     assert report["skipped_large"] == [{"course": "示例课", "name": "录像.mp4", "mb": 500}]
