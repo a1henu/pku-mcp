@@ -39,7 +39,7 @@ async def verify(root: Path) -> None:
         async with ClientSession(*streams) as session:
             await session.initialize()
             assert {tool.name for tool in (await session.list_tools()).tools} == {
-                "auth_status", "due_list", "schedule_list",
+                "auth_status", "due_list", "schedule_list", "course_list",
             }
 
             async def call(name, args):

@@ -5,8 +5,18 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from campus import ROOT as CAMPUS_ROOT
 
 mcp = FastMCP("pku-mcp")
+
+
+@mcp.tool(structured_output=True)
+def course_list() -> dict[str, Any]:
+    """Read the last successful official teaching website course sync."""
+    path = CAMPUS_ROOT / "campus-courses.json"
+    if not path.exists():
+        return {"mode": "snapshot", "status": "sync_required", "items": []}
+    return {"mode": "snapshot", "status": "available", **json.loads(path.read_text(encoding="utf-8"))}
 TASK_FIELDS = (
     "course", "course_id", "content_id", "title", "due_at", "due_date",
     "deadline_raw", "requirements", "local_progress", "submission_record_status",
