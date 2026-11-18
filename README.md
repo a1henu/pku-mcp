@@ -4,7 +4,6 @@
 
 <p align="center">
   <a href="https://github.com/a1henu/pku-mcp/actions/workflows/ci.yml"><img src="https://github.com/a1henu/pku-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/python-3.11%2B-3776AB" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/MCP-stdio-8A2BE2" alt="MCP stdio">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-555" alt="macOS | Windows | Linux">
 </p>
@@ -13,7 +12,7 @@
 
 登录全自动：密码和手机令牌只在你自己的电脑上，过期了它会自己重新登录、自己生成动态口令，不用你每次手动输入。
 
-## 30 秒开始
+## 一句话安装
 
 把这句话发给你的 AI 助手（Claude Code、Codex、Cursor……能在你电脑上执行命令的都行）：
 
@@ -41,7 +40,7 @@
 ├── README.md            学期总览：上课时间地点、考试、未交作业
 ├── 数据结构与算法/
 │   ├── 课程信息.md       这门课的作业截止、公告、资料索引
-│   ├── 资料/  作业/  公告/
+│   └── 资料/  作业/  公告/
 └── …
 ```
 
@@ -50,9 +49,9 @@
 ## 放心用
 
 - **只在你的电脑上运行**，直接连北大的网站，中间没有任何第三方服务器。
-- **只读**：查询和下载，不会提交作业、选课或改动任何东西。
+- **只读**：只查询和下载，不会替你提交作业、选课，也不会改动教学网上的任何东西。
 - 密码和令牌密钥存在 `~/.pku-mcp`（只有你的系统账户能读），AI 看不到。不用了运行 `pku-mcp forget` 一键删除。
-- 登录失败会自动暂停一会儿再试，不会把你的账号试到被锁。
+- 登录失败后会先暂停一会儿，避免把账号试到被北大锁住。
 
 细节见 [安全与隐私](docs/security.md)。
 
@@ -60,7 +59,13 @@
 
 **没开手机令牌能用吗？** 能，跳过令牌那一步就行。开了令牌但不想交给电脑也可以：目前作业、公告、资料登录时不需要令牌，只有课表和成绩需要。
 
-**怎么更新？** `uv tool upgrade pku-mcp`，或者跟 AI 说「帮我更新 pku-mcp」。
+**怎么更新？** 跟 AI 说「帮我更新 pku-mcp」，或者自己运行：
+
+```sh
+uv tool install --reinstall --refresh --python 3.12 https://github.com/a1henu/pku-mcp/archive/refs/heads/main.zip
+```
+
+Windows 上请先退出 AI 应用再更新。
 
 **改了密码 / 换了令牌？** 跟 AI 说「打开 pku-mcp 配置页」，或在终端运行 `pku-mcp setup`。
 

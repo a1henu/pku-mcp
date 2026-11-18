@@ -112,6 +112,6 @@ pku-mcp setup
 
 ## 以后
 
-- 更新：`uv tool upgrade pku-mcp`
+- 更新：运行 `uv tool install --reinstall --refresh --python 3.12 https://github.com/a1henu/pku-mcp/archive/refs/heads/main.zip`（`uv tool upgrade` 对这种安装方式不生效）。Windows 上先让用户退出 AI 应用，否则文件被占用无法替换。更新后重启 AI 应用。
 - 密码改了、令牌换了：`pku-mcp setup`，或在对话里让 AI 调用 `auth_setup`
 - 卸载：先 `pku-mcp forget` 删除保存的账号，再 `uv tool uninstall pku-mcp`
